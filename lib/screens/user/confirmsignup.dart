@@ -60,8 +60,23 @@ class _ConfirmUserSignup extends State<ConfirmUserSignup> {
       receiverMail: emailController.text, 
       userOTP: otpController.text);
       if(res){
+        String userEmail = emailController.text.trim();
         print("OTP Verified");
         errorMessage = res.toString();
+        final QuerySnapshot snap = await FirebaseFirestore
+                              .instance
+                              .collection('users')
+                              .where('email', isEqualTo: userEmail)
+                              .get();
+                          setState(() {
+                            email = userEmail;
+                            uid = snap.docs[0]['uid'];
+                            role = snap.docs[0]['role'];
+                            name = snap.docs[0]['name'];
+                            phone = snap.docs[0]['phone'];
+
+                            ableToEdit = true;
+                          });
       }else{
         print("Invalid OTP");
         errorMessage = res.toString();
@@ -170,6 +185,18 @@ class _ConfirmUserSignup extends State<ConfirmUserSignup> {
                             color: Colors.grey[400],
                           ),
                         ),
+                        validator: (String? value){
+                          if (value!.isEmpty || value.trim().length == 0) {
+                          errorMessage = 'Field Required';
+                        } 
+                        if (value.length < 6){
+                          errorMessage = 'OTP should not be less than 6 numbers';
+                        }
+                        if (value.length > 6){
+                          errorMessage = 'OTP should not be more than 6 numbers';
+                        }
+                        return null;
+                        },
                       ),
                     ),
                     Padding(
@@ -180,10 +207,10 @@ class _ConfirmUserSignup extends State<ConfirmUserSignup> {
                     style: TextStyle(color: Colors.red),
                   )),
                 ),
-                    GestureDetector(
-                      onTap: () async{
+                    FlatButton(
+                      onPressed: () async{
                         String userEmail = emailController.text.trim();
-                        String userOTP = otpController.text.trim();
+                        final String userOTP = otpController.text.trim();
                         /*
                         verifyOTP();
                         validator();
@@ -206,37 +233,16 @@ class _ConfirmUserSignup extends State<ConfirmUserSignup> {
                           });
                         }
                         */
-                        setState(() {
-                          isLoading = true;
-                          errorMessage = '';
-                        });
-
                         try{
+                          if (_formkey.currentState!.validate()) {
                           verifyOTP();
-                          if (userEmail.isEmpty) {
-                          validator();
-                        } else {
-                          final QuerySnapshot snap = await FirebaseFirestore
-                              .instance
-                              .collection('users')
-                              .where('email', isEqualTo: userEmail)
-                              .get();
-                          setState(() {
-                            email = userEmail;
-                            uid = snap.docs[0]['uid'];
-                            role = snap.docs[0]['role'];
-                            name = snap.docs[0]['name'];
-                            phone = snap.docs[0]['phone'];
-
-                            ableToEdit = true;
-                          });
-                        }
+                        } 
                         }catch (error){
                           errorMessage = error.toString();
                         }
                         setState(() {
                           isLoading = false;
-                        });
+                        });                    
                       },
                       child: Container(
                         height: 50,
